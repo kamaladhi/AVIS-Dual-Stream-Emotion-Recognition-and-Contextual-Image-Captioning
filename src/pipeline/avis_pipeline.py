@@ -196,7 +196,12 @@ class AVISPipeline:
             annotated = draw_face_results(bgr.copy(), face_dicts)
 
         elapsed_ms = (time.perf_counter() - t0) * 1000
-        logger.info(f"Pipeline complete in {elapsed_ms:.1f}ms — {len(face_analyses)} face(s)")
+        
+        if face_analyses:
+            face_details = ", ".join([f"Face {i+1}: {fa.emotion.label.upper()} ({fa.emotion.confidence*100:.1f}%)" for i, fa in enumerate(face_analyses)])
+            logger.info(f"Pipeline complete in {elapsed_ms:.1f}ms — Detected {len(face_analyses)} face(s) -> {face_details}")
+        else:
+            logger.info(f"Pipeline complete in {elapsed_ms:.1f}ms — 0 face(s)")
 
         return AVISResult(
             faces=face_analyses,
