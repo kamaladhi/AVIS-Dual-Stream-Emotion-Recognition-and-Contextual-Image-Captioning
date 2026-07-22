@@ -13,7 +13,6 @@ class EmotionProbs(BaseModel):
     neutral: float
     sad: float
     surprise: float
-    contempt: float
 
 
 class FaceResult(BaseModel):
@@ -29,6 +28,7 @@ class FaceResult(BaseModel):
 class PredictResponse(BaseModel):
     num_faces: int
     scene_caption: str
+    agentic_caption: str
     processing_time_ms: float
     faces: list[FaceResult]
 
