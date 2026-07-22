@@ -31,3 +31,4 @@ mlruns/
 .vscode/
 .idea/
 *.swp
+*.ipynb  
