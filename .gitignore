@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Datasets and Weights (CRITICAL TO IGNORE)
+data/
+weights/
+*.pth
+*.pt
+*.safetensors
+
+# Logs and databases
+logs/
+*.log
+*.sqlite
+*.db
+mlflow.db
+mlruns/
+
+# Environment variables
+.env
+.env.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp

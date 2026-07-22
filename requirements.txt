@@ -1,0 +1,69 @@
+# ============================================================
+# AVIS — Affective Visual Intelligence System
+# Requirements (RTX 3050 / 4GB VRAM optimized)
+# ============================================================
+
+# --- Core PyTorch (CUDA 12.x) ---
+# Install manually: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.2.0
+torchvision>=0.17.0
+
+# --- CV Models & Backbones ---
+ultralytics>=8.2.0          # YOLOv8n face detection
+timm>=0.9.16                # EfficientNet-B0 backbone
+mediapipe==0.10.13          # ⚠️ Pin to 0.10.13 — ≥0.10.14 removes mp.solutions on Python 3.12
+opencv-python>=4.9.0        # Image / video processing
+Pillow>=10.3.0              # PIL image handling
+albumentations>=1.4.0       # Data augmentation
+
+# --- HuggingFace Ecosystem ---
+transformers>=4.40.0        # BLIP-large + tokenizers
+huggingface-hub>=0.23.0     # Model download & HF Inference API
+datasets>=2.19.0            # FER-2013, MS-COCO loading
+accelerate>=0.30.0          # Mixed precision / device management
+
+# --- API & Serving ---
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9     # File upload support
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+
+# --- Demo UI ---
+gradio>=4.31.0
+
+# --- Agentic AI (Phase 3) ---
+langgraph>=0.1.19
+langchain>=0.2.1
+langchain-community>=0.2.1
+langchain-huggingface>=0.0.3
+langchain-groq>=0.1.0
+chromadb>=0.5.0
+langsmith>=0.1.63
+
+# --- Experiment Tracking ---
+mlflow>=2.13.0
+
+# --- Evaluation Metrics ---
+nltk>=3.8.1                 # BLEU, METEOR
+rouge-score>=0.1.2
+scikit-learn>=1.4.0         # Confusion matrix, F1
+
+# --- Utilities ---
+numpy>=1.26.0
+pandas>=2.2.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+tqdm>=4.66.0
+python-dotenv>=1.0.0
+loguru>=0.7.2               # Structured logging
+rich>=13.7.0                # Pretty CLI output
+
+# --- Testing ---
+pytest>=8.2.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0               # For testing FastAPI
+
+# --- Dev Tools ---
+black>=24.4.0
+isort>=5.13.0
