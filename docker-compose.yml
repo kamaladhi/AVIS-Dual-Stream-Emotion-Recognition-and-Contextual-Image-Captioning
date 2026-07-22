@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  # ── AVIS FastAPI ──────────────────────────────────────────
+  api:
+    build: .
+    container_name: avis-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./weights:/app/weights
+      - ./results:/app/results
+      - ./logs:/app/logs
+    environment:
+      - DEVICE=cuda
+      - BLIP_PRECISION=float16
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # ── AVIS Gradio Demo ──────────────────────────────────────
+  demo:
+    build: .
+    container_name: avis-demo
+    command: python demo/app.py
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./weights:/app/weights
+      - ./results:/app/results
+    environment:
+      - DEVICE=cuda
+    depends_on:
+      - api
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # ── MLflow Tracking Server ─────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.0
+    container_name: avis-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns
+    restart: unless-stopped
