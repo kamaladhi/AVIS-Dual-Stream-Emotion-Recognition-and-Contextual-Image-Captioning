@@ -3,6 +3,7 @@ AVIS — Face Detector
 Uses YOLOv8n-face (ultralytics) to detect and crop all faces in an image.
 Falls back to a Haar cascade if YOLO weights not yet downloaded.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,17 +11,17 @@ from typing import NamedTuple
 
 import cv2
 import numpy as np
-from PIL import Image
 import torch
+from PIL import Image
 
 from src.utils.config import config
 from src.utils.logger import logger
 
 
 class FaceDetection(NamedTuple):
-    bbox: tuple[int, int, int, int]   # x1, y1, x2, y2 (absolute pixels)
+    bbox: tuple[int, int, int, int]  # x1, y1, x2, y2 (absolute pixels)
     confidence: float
-    crop: np.ndarray                   # BGR crop of the face
+    crop: np.ndarray  # BGR crop of the face
 
 
 class FaceDetector:
@@ -52,6 +53,7 @@ class FaceDetector:
             if not weights.exists():
                 logger.info("Downloading YOLOv8-face weights from HuggingFace …")
                 from huggingface_hub import hf_hub_download
+
                 downloaded = hf_hub_download(
                     repo_id=self._HF_FACE_MODEL,
                     filename=self._MODEL_FILENAME,
@@ -126,7 +128,7 @@ class FaceDetector:
         gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         faces = self._haar.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
         detections: list[FaceDetection] = []
-        for (x, y, w, h) in faces:
+        for x, y, w, h in faces:
             x2, y2 = x + w, y + h
             crop = bgr[y:y2, x:x2]
             detections.append(FaceDetection((x, y, x2, y2), 0.7, crop))

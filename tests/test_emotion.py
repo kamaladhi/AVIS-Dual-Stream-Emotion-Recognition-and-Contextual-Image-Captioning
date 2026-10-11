@@ -2,6 +2,7 @@
 AVIS — Unit Tests: Emotion Model (architecture & forward pass)
 Tests run on CPU with random weights — no trained model needed.
 """
+
 import numpy as np
 import pytest
 import torch

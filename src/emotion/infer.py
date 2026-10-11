@@ -2,6 +2,7 @@
 AVIS — Emotion Inference Module
 Loads a trained DualStreamEmotionModel and runs inference on face crops.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,19 +20,21 @@ from src.utils.config import config
 from src.utils.logger import logger
 
 # Standard ImageNet normalization
-_NORMALIZE = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
+_NORMALIZE = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
+)
 _IMG_SIZE = 224
 
 
 @dataclass
 class EmotionResult:
-    label: str               # Predicted emotion class name
-    confidence: float        # Probability of predicted class [0, 1]
-    all_probs: dict[str, float]   # {emotion: probability} for all classes
-    embedding: np.ndarray    # 128-dim emotion embedding for caption fusion
+    label: str  # Predicted emotion class name
+    confidence: float  # Probability of predicted class [0, 1]
+    all_probs: dict[str, float]  # {emotion: probability} for all classes
+    embedding: np.ndarray  # 128-dim emotion embedding for caption fusion
 
 
 class EmotionInference:
@@ -59,8 +62,7 @@ class EmotionInference:
             logger.info(f"Loaded emotion model from {path}")
         else:
             logger.warning(
-                f"Model weights not found at {path}. "
-                "Using random weights — run training first!"
+                f"Model weights not found at {path}. " "Using random weights — run training first!"
             )
         model.to(self.device).eval()
         return model
@@ -76,10 +78,14 @@ class EmotionInference:
             EmotionResult with label, confidence, all_probs, embedding.
         """
         img_tensor = self._preprocess_image(face_bgr)
-        lm_tensor = torch.tensor(
-            self.landmark_extractor.extract(face_bgr),
-            dtype=torch.float32,
-        ).unsqueeze(0).to(self.device)
+        lm_tensor = (
+            torch.tensor(
+                self.landmark_extractor.extract(face_bgr),
+                dtype=torch.float32,
+            )
+            .unsqueeze(0)
+            .to(self.device)
+        )
 
         with torch.no_grad():
             out = self.model(img_tensor, lm_tensor)
@@ -124,12 +130,14 @@ class EmotionInference:
                 p_cal /= p_cal.sum()
 
             pred_idx = p_cal.argmax()
-            results.append(EmotionResult(
-                label=self.class_names[pred_idx],
-                confidence=float(p_cal[pred_idx]),
-                all_probs={cls: float(p) for cls, p in zip(self.class_names, p_cal)},
-                embedding=embeddings_np[i],
-            ))
+            results.append(
+                EmotionResult(
+                    label=self.class_names[pred_idx],
+                    confidence=float(p_cal[pred_idx]),
+                    all_probs={cls: float(p) for cls, p in zip(self.class_names, p_cal)},
+                    embedding=embeddings_np[i],
+                )
+            )
         return results
 
     def _preprocess_image(self, face_bgr: np.ndarray) -> torch.Tensor:

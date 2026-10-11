@@ -12,12 +12,13 @@ This dual-stream design outperforms single-stream CNN because:
     - Geometric features capture face muscle geometry (e.g., AU6 cheek raise)
     - Together they provide complementary evidence
 """
+
 from __future__ import annotations
 
+import timm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import timm
 
 from src.utils.config import config
 
@@ -65,10 +66,10 @@ class DualStreamEmotionModel(nn.Module):
         self.visual_encoder = timm.create_model(
             config.efficientnet_variant,
             pretrained=True,
-            num_classes=0,          # remove classifier head → feature extractor
+            num_classes=0,  # remove classifier head → feature extractor
             global_pool="avg",
         )
-        visual_out = config.efficientnet_out_features   # 1792
+        visual_out = config.efficientnet_out_features  # 1792
 
         if freeze_backbone:
             for p in self.visual_encoder.parameters():
@@ -76,16 +77,16 @@ class DualStreamEmotionModel(nn.Module):
 
         # ── Stream 2: Landmark MLP ────────────────────────────────────────────
         self.landmark_encoder = LandmarkMLP(
-            input_dim=config.landmark_input_dim,          # 936
-            hidden_dim=config.landmark_hidden_dim,        # 256
-            out_dim=config.landmark_hidden_dim,           # 256
+            input_dim=config.landmark_input_dim,  # 936
+            hidden_dim=config.landmark_hidden_dim,  # 256
+            out_dim=config.landmark_hidden_dim,  # 256
             dropout=dropout,
         )
 
         # ── Fusion head ───────────────────────────────────────────────────────
-        fusion_in = visual_out + config.landmark_hidden_dim   # 2048
+        fusion_in = visual_out + config.landmark_hidden_dim  # 2048
         self.fusion = nn.Sequential(
-            nn.Linear(fusion_in, config.fusion_hidden_dim),   # 512
+            nn.Linear(fusion_in, config.fusion_hidden_dim),  # 512
             nn.BatchNorm1d(config.fusion_hidden_dim),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
@@ -110,8 +111,8 @@ class DualStreamEmotionModel(nn.Module):
 
     def forward(
         self,
-        images: torch.Tensor,          # (B, 3, H, W)
-        landmarks: torch.Tensor,       # (B, 936)
+        images: torch.Tensor,  # (B, 3, H, W)
+        landmarks: torch.Tensor,  # (B, 936)
     ) -> dict[str, torch.Tensor]:
         """
         Returns:
@@ -120,20 +121,20 @@ class DualStreamEmotionModel(nn.Module):
             embeddings:    (B, emotion_embed_dim) emotion embedding for fusion head
         """
         # Stream 1
-        vis_feat = self.visual_encoder(images)             # (B, 1280)
+        vis_feat = self.visual_encoder(images)  # (B, 1280)
 
         # Stream 2
-        lm_feat = self.landmark_encoder(landmarks)         # (B, 256)
+        lm_feat = self.landmark_encoder(landmarks)  # (B, 256)
 
         # Fusion
-        fused = torch.cat([vis_feat, lm_feat], dim=1)      # (B, 2048)
-        fused = self.fusion(fused)                          # (B, 256)
-        logits = self.classifier(fused)                    # (B, num_classes)
+        fused = torch.cat([vis_feat, lm_feat], dim=1)  # (B, 2048)
+        fused = self.fusion(fused)  # (B, 256)
+        logits = self.classifier(fused)  # (B, num_classes)
         probs = F.softmax(logits, dim=-1)
 
         # Emotion embedding for caption fusion
-        pred_class = probs.argmax(dim=-1)                  # (B,)
-        embeddings = self.emotion_embed(pred_class)        # (B, 128)
+        pred_class = probs.argmax(dim=-1)  # (B,)
+        embeddings = self.emotion_embed(pred_class)  # (B, 128)
 
         return {
             "logits": logits,

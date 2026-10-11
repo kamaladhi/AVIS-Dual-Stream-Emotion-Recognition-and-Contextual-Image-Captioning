@@ -9,10 +9,14 @@ Three tabs:
 Run:
     python demo/app.py
 """
+
 from __future__ import annotations
 
 import io
 import json
+
+# ── Lazy pipeline load ────────────────────────────────────────────────────────
+import sys
 import tempfile
 from pathlib import Path
 
@@ -21,13 +25,11 @@ import gradio as gr
 import numpy as np
 from PIL import Image
 
-# ── Lazy pipeline load ────────────────────────────────────────────────────────
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.pipeline.avis_pipeline import AVISPipeline
-from src.utils.visualizer import cv2_to_pil, pil_to_cv2
 from src.utils.config import config
+from src.utils.visualizer import cv2_to_pil, pil_to_cv2
 
 _pipeline: AVISPipeline | None = None
 
@@ -41,9 +43,14 @@ def get_pipeline() -> AVISPipeline:
 
 # ── Emotion colour map for display ───────────────────────────────────────────
 EMOTION_COLORS = {
-    "angry": "#ef4444", "disgust": "#22c55e", "fear": "#a855f7",
-    "happy": "#f59e0b", "neutral": "#94a3b8", "sad": "#3b82f6",
-    "surprise": "#06b6d4", "contempt": "#f97316",
+    "angry": "#ef4444",
+    "disgust": "#22c55e",
+    "fear": "#a855f7",
+    "happy": "#f59e0b",
+    "neutral": "#94a3b8",
+    "sad": "#3b82f6",
+    "surprise": "#06b6d4",
+    "contempt": "#f97316",
 }
 
 
@@ -56,8 +63,11 @@ def process_image(image: np.ndarray) -> tuple:
     pil = Image.fromarray(image)
     result = get_pipeline().run_image(pil, annotate=True)
 
-    annotated_rgb = cv2.cvtColor(result.annotated_frame, cv2.COLOR_BGR2RGB) \
-        if result.annotated_frame is not None else image
+    annotated_rgb = (
+        cv2.cvtColor(result.annotated_frame, cv2.COLOR_BGR2RGB)
+        if result.annotated_frame is not None
+        else image
+    )
 
     # ── Build markdown summary ────────────────────────────────
     md = f"### 🌍 Scene Caption\n> {result.scene_caption}\n\n"
@@ -70,7 +80,7 @@ def process_image(image: np.ndarray) -> tuple:
         md += (
             f'<span style="background:{color};color:white;padding:4px 10px;'
             f'border-radius:12px;font-weight:bold">'
-            f'{face.emotion.label.upper()} {face.emotion.confidence:.0%}</span>\n\n'
+            f"{face.emotion.label.upper()} {face.emotion.confidence:.0%}</span>\n\n"
         )
         md += f"**Base caption:** {face.base_caption}\n\n"
         md += f"**Emotion caption:** _{face.emotion_caption}_\n\n"
@@ -136,6 +146,7 @@ def process_webcam_frame(frame: np.ndarray) -> np.ndarray:
 
 # ── Build Gradio app ──────────────────────────────────────────────────────────
 
+
 def build_demo() -> gr.Blocks:
     with gr.Blocks(
         title="AVIS — Affective Visual Intelligence System",
@@ -159,7 +170,7 @@ def build_demo() -> gr.Blocks:
         <div class="title-bar">
             <h1>🧠 AVIS — Affective Visual Intelligence System</h1>
             <p class="subtitle">
-                Emotion-aware image captioning · YOLOv8 · EfficientNet-B0 + MediaPipe Dual-Stream · BLIP-large
+                Emotion-aware image captioning · YOLOv8 · EfficientNet-B4 + MediaPipe Dual-Stream · BLIP-large
             </p>
         </div>
         """)
@@ -170,7 +181,8 @@ def build_demo() -> gr.Blocks:
                 with gr.Row():
                     with gr.Column(scale=1):
                         img_input = gr.Image(
-                            label="Upload Image", type="numpy",
+                            label="Upload Image",
+                            type="numpy",
                             elem_id="img_upload",
                         )
                         img_btn = gr.Button("🔍 Analyse", variant="primary", size="lg")
@@ -180,7 +192,9 @@ def build_demo() -> gr.Blocks:
 
                 with gr.Row():
                     with gr.Column():
-                        img_summary = gr.Markdown(label="Analysis Summary", elem_classes=["result-box"])
+                        img_summary = gr.Markdown(
+                            label="Analysis Summary", elem_classes=["result-box"]
+                        )
                     with gr.Column():
                         img_json = gr.Code(language="json", label="Raw JSON Output", lines=12)
 
@@ -219,8 +233,10 @@ def build_demo() -> gr.Blocks:
                 )
                 with gr.Row():
                     webcam_in = gr.Image(
-                        sources=["webcam"], streaming=True,
-                        label="Webcam Feed", type="numpy",
+                        sources=["webcam"],
+                        streaming=True,
+                        label="Webcam Feed",
+                        type="numpy",
                     )
                     webcam_out = gr.Image(label="AVIS Output", type="numpy")
 

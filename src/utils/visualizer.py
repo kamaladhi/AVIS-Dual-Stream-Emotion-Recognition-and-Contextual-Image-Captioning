@@ -2,6 +2,7 @@
 AVIS — Visualization Utilities
 Draw bounding boxes, emotion labels, and captions on images/frames.
 """
+
 from __future__ import annotations
 
 import cv2
@@ -12,19 +13,25 @@ from src.utils.config import config
 
 # ── Emotion → colour mapping (BGR for OpenCV) ─────────────────────────────────
 EMOTION_COLORS = {
-    "angry":    (0,   0,   220),
-    "disgust":  (0,   140, 0),
-    "fear":     (130, 0,   130),
-    "happy":    (0,   200, 50),
-    "neutral":  (180, 180, 180),
-    "sad":      (200, 100, 0),
-    "surprise": (0,   180, 220),
-    "contempt": (0,   100, 200),
+    "angry": (0, 0, 220),
+    "disgust": (0, 140, 0),
+    "fear": (130, 0, 130),
+    "happy": (0, 200, 50),
+    "neutral": (180, 180, 180),
+    "sad": (200, 100, 0),
+    "surprise": (0, 180, 220),
+    "contempt": (0, 100, 200),
 }
 
 EMOTION_EMOJIS = {
-    "angry": "😠", "disgust": "🤢", "fear": "😨", "happy": "😄",
-    "neutral": "😐", "sad": "😢", "surprise": "😲", "contempt": "😒",
+    "angry": "😠",
+    "disgust": "🤢",
+    "fear": "😨",
+    "happy": "😄",
+    "neutral": "😐",
+    "sad": "😢",
+    "surprise": "😲",
+    "contempt": "😒",
 }
 
 
@@ -59,9 +66,14 @@ def draw_face_results(
         (lw, lh), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
         cv2.rectangle(overlay, (x1, y1 - lh - baseline - 6), (x1 + lw + 8, y1), color, -1)
         cv2.putText(
-            overlay, label,
+            overlay,
+            label,
             (x1 + 4, y1 - baseline - 2),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA,
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (255, 255, 255),
+            1,
+            cv2.LINE_AA,
         )
 
         # ── Caption below box (if present) ────────────────────
@@ -99,11 +111,16 @@ def _draw_wrapped_text(
 
     x, y = origin
     line_height = int(cv2.getTextSize("A", font, font_scale, thickness)[0][1] * 2.2)
-    for i, line in enumerate(lines[:4]):   # max 4 lines
+    for i, line in enumerate(lines[:4]):  # max 4 lines
         cv2.putText(
-            frame, line,
+            frame,
+            line,
             (x, y + i * line_height),
-            font, font_scale, color, thickness, cv2.LINE_AA,
+            font,
+            font_scale,
+            color,
+            thickness,
+            cv2.LINE_AA,
         )
 
 

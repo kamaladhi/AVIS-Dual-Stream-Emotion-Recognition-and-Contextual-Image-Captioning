@@ -13,6 +13,7 @@ Features:
     - Best model checkpoint saving
     - Two-phase training: freeze backbone → unfreeze for fine-tuning
 """
+
 from __future__ import annotations
 
 import time
@@ -23,27 +24,27 @@ from pathlib import Path
 warnings.filterwarnings("ignore", category=UserWarning, module="google.protobuf")
 warnings.filterwarnings("ignore", category=UserWarning, module="albumentations")
 
+import albumentations as A
 import cv2
 import mlflow
 import numpy as np
 import torch
 import torch.nn as nn
-from tqdm import tqdm
+from albumentations.pytorch import ToTensorV2
+from PIL import Image
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
-from PIL import Image
+from tqdm import tqdm
 
 from src.detection.landmark_extractor import LandmarkExtractor
 from src.emotion.model import build_model
 from src.utils.config import config
 from src.utils.logger import logger
 
-
 # ── Dataset ───────────────────────────────────────────────────────────────────
+
 
 class FER2013Dataset(Dataset):
     """
@@ -55,20 +56,24 @@ class FER2013Dataset(Dataset):
         data/fer2013/test/
     """
 
-    AUGMENT = A.Compose([
-        A.HorizontalFlip(p=0.5),
-        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
-        A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=20, val_shift_limit=10, p=0.3),
-        A.GaussNoise(p=0.2),
-        A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=10, p=0.4),
-        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ToTensorV2(),
-    ])
+    AUGMENT = A.Compose(
+        [
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+            A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=20, val_shift_limit=10, p=0.3),
+            A.GaussNoise(p=0.2),
+            A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=10, p=0.4),
+            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ToTensorV2(),
+        ]
+    )
 
-    EVAL_TRANSFORM = A.Compose([
-        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ToTensorV2(),
-    ])
+    EVAL_TRANSFORM = A.Compose(
+        [
+            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ToTensorV2(),
+        ]
+    )
 
     IMG_SIZE = 224
 
@@ -100,7 +105,9 @@ class FER2013Dataset(Dataset):
             for img_path in cls_dir.glob("*.png"):
                 self.samples.append((img_path, self.class_to_idx[cls_name]))
 
-        logger.info(f"FER-2013 [{split}]: {len(self.samples)} samples across {len(self.class_names)} classes.")
+        logger.info(
+            f"FER-2013 [{split}]: {len(self.samples)} samples across {len(self.class_names)} classes."
+        )
 
     def __len__(self) -> int:
         return len(self.samples)
@@ -112,12 +119,13 @@ class FER2013Dataset(Dataset):
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
 
         augmented = self.transform(image=rgb)
-        image_tensor = augmented["image"]   # (3, H, W)
+        image_tensor = augmented["image"]  # (3, H, W)
 
         # Landmarks - instantiate lazily inside the worker process
         if self.use_landmarks:
             if self.landmark_extractor is None:
                 from src.detection.landmark_extractor import LandmarkExtractor
+
                 self.landmark_extractor = LandmarkExtractor()
             lm_vec = self.landmark_extractor.extract(bgr)
         else:
@@ -131,6 +139,7 @@ class FER2013Dataset(Dataset):
 
 
 # ── Training loop ─────────────────────────────────────────────────────────────
+
 
 def train_one_epoch(
     model: nn.Module,
@@ -207,12 +216,18 @@ def train(data_root: str = "data/fer2013") -> None:
     val_ds = FER2013Dataset(data_path, "test")
 
     train_loader = DataLoader(
-        train_ds, batch_size=config.batch_size,
-        shuffle=True, num_workers=config.num_workers, pin_memory=True,
+        train_ds,
+        batch_size=config.batch_size,
+        shuffle=True,
+        num_workers=config.num_workers,
+        pin_memory=True,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=config.batch_size * 2,
-        shuffle=False, num_workers=config.num_workers, pin_memory=True,
+        val_ds,
+        batch_size=config.batch_size * 2,
+        shuffle=False,
+        num_workers=config.num_workers,
+        pin_memory=True,
     )
 
     # ── Model ─────────────────────────────────────────────────
@@ -226,13 +241,15 @@ def train(data_root: str = "data/fer2013") -> None:
     class_counts = np.bincount(labels)
     total_samples = len(labels)
     num_classes = len(config.emotion_classes)
-    
+
     weights = total_samples / (num_classes * class_counts)
     class_weights_tensor = torch.tensor(weights, dtype=torch.float32).to(device)
     logger.info(f"Applied Class Weights: {weights.round(2)}")
 
     # ── Loss, optimizer, scheduler ────────────────────────────
-    criterion = nn.CrossEntropyLoss(weight=class_weights_tensor, label_smoothing=config.label_smoothing)
+    criterion = nn.CrossEntropyLoss(
+        weight=class_weights_tensor, label_smoothing=config.label_smoothing
+    )
     optimizer = AdamW(
         model.parameters(),
         lr=config.learning_rate,
@@ -249,15 +266,17 @@ def train(data_root: str = "data/fer2013") -> None:
     unfreeze_done = False
 
     with mlflow.start_run():
-        mlflow.log_params({
-            "backbone": config.efficientnet_variant,
-            "num_classes": config.num_emotion_classes,
-            "batch_size": config.batch_size,
-            "lr": config.learning_rate,
-            "epochs": config.num_epochs,
-            "label_smoothing": config.label_smoothing,
-            "dual_stream": True,
-        })
+        mlflow.log_params(
+            {
+                "backbone": config.efficientnet_variant,
+                "num_classes": config.num_emotion_classes,
+                "batch_size": config.batch_size,
+                "lr": config.learning_rate,
+                "epochs": config.num_epochs,
+                "label_smoothing": config.label_smoothing,
+                "dual_stream": True,
+            }
+        )
 
         for epoch in range(1, config.num_epochs + 1):
             # Phase-2: unfreeze backbone after 10 epochs
@@ -269,7 +288,9 @@ def train(data_root: str = "data/fer2013") -> None:
                 logger.info("Backbone unfrozen for fine-tuning.")
 
             t0 = time.time()
-            train_metrics = train_one_epoch(model, train_loader, optimizer, criterion, device, scaler)
+            train_metrics = train_one_epoch(
+                model, train_loader, optimizer, criterion, device, scaler
+            )
             val_metrics = evaluate(model, val_loader, criterion, device)
             scheduler.step()
 
@@ -281,13 +302,16 @@ def train(data_root: str = "data/fer2013") -> None:
                 f"Time: {elapsed:.1f}s"
             )
 
-            mlflow.log_metrics({
-                "train_loss": train_metrics["loss"],
-                "train_acc": train_metrics["accuracy"],
-                "val_loss": val_metrics["loss"],
-                "val_acc": val_metrics["accuracy"],
-                "lr": optimizer.param_groups[0]["lr"],
-            }, step=epoch)
+            mlflow.log_metrics(
+                {
+                    "train_loss": train_metrics["loss"],
+                    "train_acc": train_metrics["accuracy"],
+                    "val_loss": val_metrics["loss"],
+                    "val_acc": val_metrics["accuracy"],
+                    "lr": optimizer.param_groups[0]["lr"],
+                },
+                step=epoch,
+            )
 
             # ── Save best checkpoint ───────────────────────────
             if val_metrics["accuracy"] > best_val_acc:
@@ -306,7 +330,7 @@ def train(data_root: str = "data/fer2013") -> None:
                     config.emotion_model_path,
                 )
                 logger.info(f"  ✅ New best model saved (val_acc={best_val_acc:.4f})")
-                
+
                 # Register the model to MLflow Model Registry (commented out to avoid pt2 trace errors)
                 # mlflow.pytorch.log_model(
                 #     model,
@@ -320,6 +344,7 @@ def train(data_root: str = "data/fer2013") -> None:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default="data/fer2013", help="Path to FER-2013 dataset")
     args = parser.parse_args()

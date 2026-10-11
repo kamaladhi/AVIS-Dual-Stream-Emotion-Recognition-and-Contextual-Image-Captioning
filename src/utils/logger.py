@@ -2,6 +2,7 @@
 AVIS — Structured Logging via Loguru
 Import `logger` from here everywhere in the project.
 """
+
 import sys
 from pathlib import Path
 
@@ -34,10 +35,10 @@ logger.add(
     LOG_DIR / "avis_{time:YYYY-MM-DD}.log",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} — {message}",
     level="DEBUG",
-    rotation="00:00",      # rotate daily
+    rotation="00:00",  # rotate daily
     retention="7 days",
     compression="zip",
-    enqueue=True,          # Required for safe multiprocessing on Windows
+    enqueue=True,  # Required for safe multiprocessing on Windows
 )
 
 __all__ = ["logger"]

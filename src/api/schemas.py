@@ -1,7 +1,9 @@
 """
 AVIS — Pydantic Schemas for FastAPI
 """
+
 from __future__ import annotations
+
 from pydantic import BaseModel, Field
 
 

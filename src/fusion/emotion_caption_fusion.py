@@ -18,26 +18,27 @@ Two fusion strategies:
        via a learned linear layer and prepends it to the input sequence.
        (Implemented as EmotionEmbeddingFusion — enable after training.)
 """
+
 from __future__ import annotations
 
 import re
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 
 from src.utils.config import config
 from src.utils.logger import logger
 
-
 # ── Emotion → contextual descriptor mapping ───────────────────────────────────
 EMOTION_DESCRIPTORS = {
-    "happy":    ("joyfully", "with a warm, happy expression"),
-    "sad":      ("somberly", "with a sorrowful, melancholic expression"),
-    "angry":    ("intensely", "with a tense, angry expression"),
-    "fear":     ("anxiously", "with a fearful, worried expression"),
+    "happy": ("joyfully", "with a warm, happy expression"),
+    "sad": ("somberly", "with a sorrowful, melancholic expression"),
+    "angry": ("intensely", "with a tense, angry expression"),
+    "fear": ("anxiously", "with a fearful, worried expression"),
     "surprise": ("in surprise", "with a startled, astonished expression"),
-    "disgust":  ("with distaste", "with a disgusted expression"),
-    "neutral":  ("calmly", "with a neutral, composed expression"),
+    "disgust": ("with distaste", "with a disgusted expression"),
+    "neutral": ("calmly", "with a neutral, composed expression"),
     "contempt": ("dismissively", "with a contemptuous expression"),
 }
 
@@ -164,5 +165,5 @@ class EmotionEmbeddingFusion(nn.Module):
         Returns:
             Projected token: (B, 1, 768) — prepend to BLIP encoder input.
         """
-        projected = self.projection(emotion_embedding)   # (B, 768)
-        return projected.unsqueeze(1)                    # (B, 1, 768)
+        projected = self.projection(emotion_embedding)  # (B, 768)
+        return projected.unsqueeze(1)  # (B, 1, 768)

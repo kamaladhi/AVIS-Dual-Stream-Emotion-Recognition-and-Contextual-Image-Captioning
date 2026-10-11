@@ -9,6 +9,7 @@ Usage:
     result = pipeline.run_image(pil_or_bgr_image)
     results = pipeline.run_video_frame(bgr_frame)
 """
+
 from __future__ import annotations
 
 import time
@@ -20,17 +21,18 @@ import numpy as np
 from PIL import Image
 
 from src.captioning.blip_wrapper import BLIPCaptioner
-from src.detection.face_detector import FaceDetector, FaceDetection
+from src.detection.face_detector import FaceDetection, FaceDetector
 from src.emotion.infer import EmotionInference, EmotionResult
 from src.fusion.emotion_caption_fusion import PromptFusionHead
 from src.utils.config import config
 from src.utils.logger import logger
-from src.utils.visualizer import draw_face_results, cv2_to_pil, pil_to_cv2
+from src.utils.visualizer import cv2_to_pil, draw_face_results, pil_to_cv2
 
 
 @dataclass
 class FaceAnalysis:
     """Result for one detected face."""
+
     bbox: tuple[int, int, int, int]
     detection_confidence: float
     emotion: EmotionResult
@@ -41,9 +43,10 @@ class FaceAnalysis:
 @dataclass
 class AVISResult:
     """Complete result for one image/frame."""
+
     faces: list[FaceAnalysis] = field(default_factory=list)
-    scene_caption: str = ""           # whole-image caption (no face focus)
-    agentic_caption: str = ""         # Synthesized context from LangGraph Agent
+    scene_caption: str = ""  # whole-image caption (no face focus)
+    agentic_caption: str = ""  # Synthesized context from LangGraph Agent
     annotated_frame: np.ndarray | None = None  # BGR frame with overlays
     processing_time_ms: float = 0.0
 
@@ -151,29 +154,33 @@ class AVISPipeline:
                     original_image=pil,
                 )
 
-                face_analyses.append(FaceAnalysis(
-                    bbox=detection.bbox,
-                    detection_confidence=detection.confidence,
-                    emotion=emotion,
-                    base_caption=base_cap,
-                    emotion_caption=emotion_cap,
-                ))
-                
-                faces_data.append({
-                    "emotion": emotion.label,
-                    "confidence": emotion.confidence,
-                    "bbox": detection.bbox
-                })
+                face_analyses.append(
+                    FaceAnalysis(
+                        bbox=detection.bbox,
+                        detection_confidence=detection.confidence,
+                        emotion=emotion,
+                        base_caption=base_cap,
+                        emotion_caption=emotion_cap,
+                    )
+                )
+
+                faces_data.append(
+                    {
+                        "emotion": emotion.label,
+                        "confidence": emotion.confidence,
+                        "bbox": detection.bbox,
+                    }
+                )
 
         # ── Stage 5.5: LangGraph Agentic Synthesis ────────────
         from src.agents import agent_app
-        
+
         try:
             agent_input = {
                 "image_path": "memory",
                 "base_caption": scene_caption,
                 "faces_data": faces_data,
-                "final_caption": ""
+                "final_caption": "",
             }
             agent_result = agent_app.invoke(agent_input)
             agentic_caption = agent_result["final_caption"]
@@ -196,10 +203,17 @@ class AVISPipeline:
             annotated = draw_face_results(bgr.copy(), face_dicts)
 
         elapsed_ms = (time.perf_counter() - t0) * 1000
-        
+
         if face_analyses:
-            face_details = ", ".join([f"Face {i+1}: {fa.emotion.label.upper()} ({fa.emotion.confidence*100:.1f}%)" for i, fa in enumerate(face_analyses)])
-            logger.info(f"Pipeline complete in {elapsed_ms:.1f}ms — Detected {len(face_analyses)} face(s) -> {face_details}")
+            face_details = ", ".join(
+                [
+                    f"Face {i+1}: {fa.emotion.label.upper()} ({fa.emotion.confidence*100:.1f}%)"
+                    for i, fa in enumerate(face_analyses)
+                ]
+            )
+            logger.info(
+                f"Pipeline complete in {elapsed_ms:.1f}ms — Detected {len(face_analyses)} face(s) -> {face_details}"
+            )
         else:
             logger.info(f"Pipeline complete in {elapsed_ms:.1f}ms — 0 face(s)")
 
@@ -238,7 +252,9 @@ class AVISPipeline:
                 # Run inference every 3rd frame to keep smooth FPS
                 if frame_count % 3 == 0:
                     result = self.run_video_frame(frame)
-                    display = result.annotated_frame if result.annotated_frame is not None else frame
+                    display = (
+                        result.annotated_frame if result.annotated_frame is not None else frame
+                    )
                 else:
                     display = frame
 

@@ -4,6 +4,7 @@ AVIS — FastAPI Application Entry Point
 Run:
     uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 """
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -16,8 +17,8 @@ from src.pipeline.avis_pipeline import AVISPipeline
 from src.utils.config import config
 from src.utils.logger import logger
 
-
 # ── App lifecycle ─────────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

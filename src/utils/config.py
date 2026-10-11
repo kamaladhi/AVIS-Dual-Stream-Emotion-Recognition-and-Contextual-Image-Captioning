@@ -2,11 +2,11 @@
 AVIS — Centralized Configuration
 All settings are loaded from environment variables (.env file).
 """
+
 from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -29,7 +29,7 @@ class AVISConfig(BaseSettings):
 
     # ── Model Identifiers ─────────────────────────────────────
     blip_model_id: str = "Salesforce/blip-image-captioning-large"
-    yolo_model_name: str = "yolov8n.pt"   # will be overridden by face model
+    yolo_model_name: str = "yolov8n.pt"  # will be overridden by face model
 
     # ── Model Paths ───────────────────────────────────────────
     emotion_model_path: Path = ROOT_DIR / "weights" / "emotion_model_best.pth"
@@ -44,10 +44,7 @@ class AVISConfig(BaseSettings):
     min_caption_length: int = 10
 
     # ── Emotion Classes ───────────────────────────────────────
-    emotion_classes: list[str] = [
-        "angry", "disgust", "fear", "happy",
-        "neutral", "sad", "surprise"
-    ]
+    emotion_classes: list[str] = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
     num_emotion_classes: int = 7
 
     # ── Training ──────────────────────────────────────────────
@@ -62,10 +59,10 @@ class AVISConfig(BaseSettings):
     # ── EfficientNet Dual-Stream ──────────────────────────────
     efficientnet_variant: str = "efficientnet_b4"
     efficientnet_out_features: int = 1792
-    landmark_input_dim: int = 936       # 468 points × 2 (x, y)
+    landmark_input_dim: int = 936  # 468 points × 2 (x, y)
     landmark_hidden_dim: int = 256
     fusion_hidden_dim: int = 512
-    emotion_embed_dim: int = 128        # for caption fusion
+    emotion_embed_dim: int = 128  # for caption fusion
 
     # ── API ───────────────────────────────────────────────────
     api_host: str = "0.0.0.0"
@@ -79,7 +76,7 @@ class AVISConfig(BaseSettings):
     langchain_tracing_v2: bool = False
     langchain_api_key: str = ""
     langchain_project: str = "avis-emotion-captioning"
-    
+
     # ── LLM Configuration ─────────────────────────────────────
     groq_api_key: str = ""
     openrouter_api_key: str = ""

@@ -9,11 +9,11 @@ Compatibility:
     - mediapipe >= 0.10.14  → uses new MediaPipe Tasks API (FaceLandmarker)
     - mediapipe unavailable → returns zero vectors silently (graceful degradation)
 """
+
 from __future__ import annotations
 
-from pathlib import Path
-
 import os
+from pathlib import Path
 
 # Suppress TF Lite C++ INFO logs before mediapipe is imported
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -36,7 +36,7 @@ class LandmarkExtractor:
         vec = extractor.extract(face_crop_bgr)  # np.ndarray (936,) or zeros
     """
 
-    LANDMARK_DIM = 936   # 468 × 2
+    LANDMARK_DIM = 936  # 468 × 2
 
     # Remote model for new Tasks API (downloaded once and cached)
     _TASKS_MODEL_URL = (
@@ -112,6 +112,7 @@ class LandmarkExtractor:
             return cls._TASKS_MODEL_PATH
         try:
             import urllib.request
+
             cls._TASKS_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
             logger.info("Downloading face_landmarker.task model (~29MB) …")
             urllib.request.urlretrieve(cls._TASKS_MODEL_URL, cls._TASKS_MODEL_PATH)
@@ -155,22 +156,19 @@ class LandmarkExtractor:
         if not results.multi_face_landmarks:
             return np.zeros(self.LANDMARK_DIM, dtype=np.float32)
         landmarks = results.multi_face_landmarks[0].landmark
-        coords = np.array(
-            [[lm.x, lm.y] for lm in landmarks[:468]], dtype=np.float32
-        )
+        coords = np.array([[lm.x, lm.y] for lm in landmarks[:468]], dtype=np.float32)
         return coords.flatten()
 
     def _extract_tasks(self, face_rgb: np.ndarray) -> np.ndarray:
         """Extract using new MediaPipe Tasks FaceLandmarker."""
         import mediapipe as mp
+
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=face_rgb)
         result = self._landmarker.detect(mp_image)
         if not result.face_landmarks:
             return np.zeros(self.LANDMARK_DIM, dtype=np.float32)
         landmarks = result.face_landmarks[0]
-        coords = np.array(
-            [[lm.x, lm.y] for lm in landmarks[:468]], dtype=np.float32
-        )
+        coords = np.array([[lm.x, lm.y] for lm in landmarks[:468]], dtype=np.float32)
         return coords.flatten()
 
     def extract_batch(self, face_crops: list[np.ndarray]) -> np.ndarray:

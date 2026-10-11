@@ -1,11 +1,12 @@
 """
 AVIS — Unit Tests: Detection Module
 """
+
 import numpy as np
 import pytest
 from PIL import Image
 
-from src.detection.face_detector import FaceDetector, FaceDetection
+from src.detection.face_detector import FaceDetection, FaceDetector
 from src.detection.landmark_extractor import LandmarkExtractor
 
 
@@ -86,4 +87,3 @@ class TestLandmarkExtractor:
         vec = landmark_extractor.extract(None)
         assert vec.shape == (936,)
         assert (vec == 0).all()
-

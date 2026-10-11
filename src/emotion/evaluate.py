@@ -5,12 +5,14 @@ Generates accuracy, weighted F1, per-class report, and confusion matrix.
 Run:
     python -m src.emotion.evaluate --data data/fer2013
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import cv2
 import matplotlib.pyplot as plt
+import mlflow
 import numpy as np
 import seaborn as sns
 import torch
@@ -19,11 +21,10 @@ from sklearn.metrics import (
     confusion_matrix,
     f1_score,
 )
-import mlflow
 from torch.utils.data import DataLoader
 
-from src.emotion.train import FER2013Dataset
 from src.emotion.model import build_model
+from src.emotion.train import FER2013Dataset
 from src.utils.config import config
 from src.utils.logger import logger
 
@@ -48,9 +49,7 @@ def evaluate_model(data_root: str = "data/fer2013", model_path: Path | None = No
 
     # ── Dataset ───────────────────────────────────────────────
     test_ds = FER2013Dataset(Path(data_root), "test", use_landmarks=True)
-    test_loader = DataLoader(
-        test_ds, batch_size=64, shuffle=False, num_workers=config.num_workers
-    )
+    test_loader = DataLoader(test_ds, batch_size=64, shuffle=False, num_workers=config.num_workers)
 
     # ── Inference ─────────────────────────────────────────────
     all_preds, all_labels = [], []
@@ -70,9 +69,7 @@ def evaluate_model(data_root: str = "data/fer2013", model_path: Path | None = No
     # ── Metrics ───────────────────────────────────────────────
     accuracy = (all_preds == all_labels).mean()
     weighted_f1 = f1_score(all_labels, all_preds, average="weighted")
-    report = classification_report(
-        all_labels, all_preds, target_names=config.emotion_classes
-    )
+    report = classification_report(all_labels, all_preds, target_names=config.emotion_classes)
     cm = confusion_matrix(all_labels, all_preds)
 
     logger.info(f"\nAccuracy: {accuracy:.4f} | Weighted F1: {weighted_f1:.4f}\n{report}")
@@ -80,7 +77,10 @@ def evaluate_model(data_root: str = "data/fer2013", model_path: Path | None = No
     # ── Confusion matrix plot ─────────────────────────────────
     fig, ax = plt.subplots(figsize=(10, 8))
     sns.heatmap(
-        cm, annot=True, fmt="d", cmap="Blues",
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
         xticklabels=config.emotion_classes,
         yticklabels=config.emotion_classes,
         ax=ax,
@@ -112,6 +112,7 @@ def evaluate_model(data_root: str = "data/fer2013", model_path: Path | None = No
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default="data/fer2013")
     args = parser.parse_args()

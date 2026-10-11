@@ -1,6 +1,7 @@
 """
 AVIS — FastAPI Application Routes
 """
+
 from __future__ import annotations
 
 import io
@@ -63,9 +64,11 @@ async def predict(file: UploadFile = File(..., description="Image file (JPG/PNG)
     return PredictResponse(**result.to_dict())
 
 
-import base64
 import asyncio
+import base64
+
 from fastapi import WebSocket, WebSocketDisconnect
+
 
 @router.websocket("/stream")
 async def websocket_endpoint(websocket: WebSocket):
@@ -78,15 +81,15 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # Receive base64 string from the client
             data = await websocket.receive_text()
-            
+
             # The client might send 'data:image/jpeg;base64,...'
             if data.startswith("data:image"):
                 data = data.split(",")[1]
-            
+
             # Decode the base64 string to bytes
             image_bytes = base64.b64decode(data)
             pil_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            
+
             # Run inference in a separate thread so we don't block the async event loop
             try:
                 result = await asyncio.to_thread(_pipeline.run_image, pil_image, False)
@@ -95,7 +98,7 @@ async def websocket_endpoint(websocket: WebSocket):
             except Exception as e:
                 logger.error(f"WebSocket Pipeline Error: {e}")
                 await websocket.send_json({"error": str(e)})
-                
+
     except WebSocketDisconnect:
         logger.info("Client disconnected from WebSocket stream.")
     except Exception as exc:

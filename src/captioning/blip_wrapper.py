@@ -4,15 +4,16 @@ Runs Salesforce/blip-image-captioning-large in float16 to fit 4GB VRAM.
 
 VRAM usage: ~1.9 GB (float16)
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Union
 
+import cv2
+import numpy as np
 import torch
 from PIL import Image
-import numpy as np
-import cv2
 
 from src.utils.config import config
 from src.utils.logger import logger
@@ -36,7 +37,7 @@ class BLIPCaptioner:
 
     def _load(self) -> None:
         logger.info(f"Loading BLIP-large ({config.blip_model_id}) in {config.blip_precision} …")
-        from transformers import BlipProcessor, BlipForConditionalGeneration
+        from transformers import BlipForConditionalGeneration, BlipProcessor
 
         self._processor = BlipProcessor.from_pretrained(
             config.blip_model_id,
