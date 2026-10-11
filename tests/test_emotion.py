@@ -69,6 +69,6 @@ class TestDualStreamModel:
 
     def test_parameter_count_reasonable(self, model):
         total = sum(p.numel() for p in model.parameters())
-        # EfficientNet-B0 has ~5.3M params + landmark MLP + fusion head
-        assert total > 5_000_000
-        assert total < 20_000_000
+        # EfficientNet-B4 has ~19.3M params + landmark MLP + fusion head
+        assert total > 15_000_000
+        assert total < 30_000_000

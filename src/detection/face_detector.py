@@ -11,6 +11,7 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 from PIL import Image
+import torch
 
 from src.utils.config import config
 from src.utils.logger import logger
@@ -96,7 +97,7 @@ class FaceDetector:
             bgr,
             conf=self.conf,
             verbose=False,
-            device=config.device,
+            device=config.device if torch.cuda.is_available() else "cpu",
         )
         detections: list[FaceDetection] = []
         for r in results:
@@ -105,9 +106,14 @@ class FaceDetector:
             for box in r.boxes:
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
-                x1, y1 = max(0, x1), max(0, y1)
-                x2, y2 = min(bgr.shape[1], x2), min(bgr.shape[0], y2)
-                crop = bgr[y1:y2, x1:x2]
+                # Add 15% margin to preserve forehead, eyebrows, and jawline
+                w, h = x2 - x1, y2 - y1
+                pad_w, pad_h = int(w * 0.15), int(h * 0.15)
+                crop_x1 = max(0, x1 - pad_w)
+                crop_y1 = max(0, y1 - pad_h)
+                crop_x2 = min(bgr.shape[1], x2 + pad_w)
+                crop_y2 = min(bgr.shape[0], y2 + pad_h)
+                crop = bgr[crop_y1:crop_y2, crop_x1:crop_x2]
                 if crop.size == 0:
                     continue
                 detections.append(FaceDetection((x1, y1, x2, y2), conf, crop))

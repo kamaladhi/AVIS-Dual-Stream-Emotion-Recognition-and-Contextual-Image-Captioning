@@ -28,10 +28,19 @@ def process_image(image_input):
         # Format the output text
         agentic_cap = result.agentic_caption
         
-        faces_info = "\n".join([f"- **Face {i+1}**: {f.emotion.label.title()} ({f.emotion.confidence*100:.1f}%)" for i, f in enumerate(result.faces)])
-        if not faces_info:
-            faces_info = "- No faces detected"
-            
+        EMOJI_MAP = {
+            "happy": "😊", "sad": "😢", "angry": "😠",
+            "surprise": "😲", "fear": "😨", "disgust": "🤢", "neutral": "😐"
+        }
+        face_blocks = []
+        for i, f in enumerate(result.faces):
+            top3 = sorted(f.emotion.all_probs.items(), key=lambda x: x[1], reverse=True)[:3]
+            top3_str = " &nbsp;|&nbsp; ".join([f"{EMOJI_MAP.get(k, '')} **{k.title()}**: {v*100:.1f}%" for k, v in top3])
+            face_blocks.append(
+                f"- **Face {i+1}**: {EMOJI_MAP.get(f.emotion.label, '')} **{f.emotion.label.title()}** ({f.emotion.confidence*100:.1f}%)\n"
+                f"  > *Candidates:* {top3_str}"
+            )
+        faces_info = "\n\n".join(face_blocks) if face_blocks else "- No faces detected"
         stats = f"### ⏱️ Processing Time: {result.processing_time_ms:.1f} ms\n\n### 🎭 Detected Emotions:\n{faces_info}"
         
         return out_image, agentic_cap, stats

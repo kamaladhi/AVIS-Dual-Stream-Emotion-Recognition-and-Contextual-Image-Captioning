@@ -4,17 +4,33 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agents.state import AgentState
 from src.utils.config import config
 from loguru import logger
+import mlflow
+
+# ── Enable MLflow Tracing for GenAI ─────────────────────────
+mlflow.langchain.autolog()
 
 def generate_caption(state: AgentState) -> AgentState:
     logger.info("🤖 [Agent] Generating empathetic caption...")
     
-    # Fallback to naive concatenation if no API key is provided
-    if config.openrouter_api_key:
-        from langchain_community.chat_models import ChatOpenAI
+    # Fallback to Hugging Face if explicitly requested via token
+    if config.hf_token:
+        # We use the HF Serverless API to prevent 16GB VRAM OOM crashes!
+        from langchain_openai import ChatOpenAI
+        logger.info("🤖 [Agent] Using Hugging Face Mistral-7B Serverless API...")
+        llm = ChatOpenAI(
+            api_key=config.hf_token,
+            base_url="https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3/v1",
+            model="tgi", # HF uses tgi for OpenAI schema
+            temperature=0.4,
+            max_tokens=150
+        )
+        
+    elif config.openrouter_api_key:
+        from langchain_openai import ChatOpenAI
         llm = ChatOpenAI(
             api_key=config.openrouter_api_key,
             base_url="https://openrouter.ai/api/v1",
-            model="meta-llama/llama-3-8b-instruct", # OpenRouter specific model path fallback
+            model="meta-llama/llama-3-8b-instruct", 
             temperature=0.4,
             max_tokens=150
         )
@@ -26,7 +42,7 @@ def generate_caption(state: AgentState) -> AgentState:
             max_tokens=150
         )
     else:
-        logger.warning("⚠️ [Agent] No Groq or OpenRouter API key found in .env! Returning raw concatenated string.")
+        logger.warning("⚠️ [Agent] No API key found in .env! Returning raw concatenated string.")
         faces_str = ", ".join([f"{f['emotion']} (conf: {f['confidence']:.2f})" for f in state["faces_data"]])
         if not faces_str:
             faces_str = "No faces detected"

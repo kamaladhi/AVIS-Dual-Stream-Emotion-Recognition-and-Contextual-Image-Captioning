@@ -2,10 +2,10 @@
 AVIS — Dual-Stream Emotion Recognition Model  ⭐ Novel Contribution
 
 Architecture:
-    Stream 1 (Visual):   EfficientNet-B0 pretrained backbone → 1280-dim feature
+    Stream 1 (Visual):   EfficientNet-B4 pretrained backbone → 1792-dim feature
     Stream 2 (Geometric): MLP on 936-dim MediaPipe landmark vector → 256-dim feature
-    Fusion:              Concat [1280 + 256] → Linear(1536→512) → ReLU → Dropout
-                         → Linear(512→8) with confidence calibration
+    Fusion:              Concat [1792 + 256] → Linear(2048→512) → BN → ReLU → Dropout
+                         → Linear(512→256) → ReLU → Dropout → Linear(256→7)
 
 This dual-stream design outperforms single-stream CNN because:
     - Visual features capture texture/colour patterns (e.g., rosy cheeks when happy)
@@ -45,7 +45,7 @@ class LandmarkMLP(nn.Module):
 
 class DualStreamEmotionModel(nn.Module):
     """
-    Dual-stream emotion classifier: EfficientNet-B0 + MediaPipe landmarks.
+    Dual-stream emotion classifier: EfficientNet-B4 + MediaPipe landmarks.
 
     Args:
         num_classes:       Number of emotion classes (default: 8).
@@ -61,14 +61,14 @@ class DualStreamEmotionModel(nn.Module):
     ):
         super().__init__()
 
-        # ── Stream 1: EfficientNet-B0 visual backbone ─────────────────────────
+        # ── Stream 1: EfficientNet-B4 visual backbone ─────────────────────────
         self.visual_encoder = timm.create_model(
             config.efficientnet_variant,
             pretrained=True,
             num_classes=0,          # remove classifier head → feature extractor
             global_pool="avg",
         )
-        visual_out = config.efficientnet_out_features   # 1280
+        visual_out = config.efficientnet_out_features   # 1792
 
         if freeze_backbone:
             for p in self.visual_encoder.parameters():
@@ -83,7 +83,7 @@ class DualStreamEmotionModel(nn.Module):
         )
 
         # ── Fusion head ───────────────────────────────────────────────────────
-        fusion_in = visual_out + config.landmark_hidden_dim   # 1536
+        fusion_in = visual_out + config.landmark_hidden_dim   # 2048
         self.fusion = nn.Sequential(
             nn.Linear(fusion_in, config.fusion_hidden_dim),   # 512
             nn.BatchNorm1d(config.fusion_hidden_dim),
@@ -126,9 +126,9 @@ class DualStreamEmotionModel(nn.Module):
         lm_feat = self.landmark_encoder(landmarks)         # (B, 256)
 
         # Fusion
-        fused = torch.cat([vis_feat, lm_feat], dim=1)      # (B, 1536)
+        fused = torch.cat([vis_feat, lm_feat], dim=1)      # (B, 2048)
         fused = self.fusion(fused)                          # (B, 256)
-        logits = self.classifier(fused)                    # (B, 8)
+        logits = self.classifier(fused)                    # (B, num_classes)
         probs = F.softmax(logits, dim=-1)
 
         # Emotion embedding for caption fusion

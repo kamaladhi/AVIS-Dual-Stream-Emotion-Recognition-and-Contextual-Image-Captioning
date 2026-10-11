@@ -81,10 +81,15 @@ class EmotionInference:
             dtype=torch.float32,
         ).unsqueeze(0).to(self.device)
 
-        with torch.no_grad(), torch.cuda.amp.autocast(enabled=(self.device.type == "cuda")):
+        with torch.no_grad():
             out = self.model(img_tensor, lm_tensor)
 
-        probs = out["probs"][0].cpu().numpy()
+        probs = out["probs"][0].cpu().numpy().copy()
+        if "neutral" in self.class_names:
+            n_idx = self.class_names.index("neutral")
+            probs[n_idx] *= 0.80
+            probs /= probs.sum()
+
         pred_idx = probs.argmax()
 
         return EmotionResult(
@@ -105,18 +110,24 @@ class EmotionInference:
             dtype=torch.float32,
         ).to(self.device)
 
-        with torch.no_grad(), torch.cuda.amp.autocast(enabled=(self.device.type == "cuda")):
+        with torch.no_grad():
             out = self.model(images, landmarks)
 
         probs_np = out["probs"].cpu().numpy()
         embeddings_np = out["embeddings"].cpu().numpy()
         results = []
         for i, probs in enumerate(probs_np):
-            pred_idx = probs.argmax()
+            p_cal = probs.copy()
+            if "neutral" in self.class_names:
+                n_idx = self.class_names.index("neutral")
+                p_cal[n_idx] *= 0.80
+                p_cal /= p_cal.sum()
+
+            pred_idx = p_cal.argmax()
             results.append(EmotionResult(
                 label=self.class_names[pred_idx],
-                confidence=float(probs[pred_idx]),
-                all_probs={cls: float(p) for cls, p in zip(self.class_names, probs)},
+                confidence=float(p_cal[pred_idx]),
+                all_probs={cls: float(p) for cls, p in zip(self.class_names, p_cal)},
                 embedding=embeddings_np[i],
             ))
         return results

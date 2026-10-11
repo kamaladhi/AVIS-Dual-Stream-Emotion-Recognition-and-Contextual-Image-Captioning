@@ -219,8 +219,20 @@ def train(data_root: str = "data/fer2013") -> None:
     model = build_model(freeze_backbone=True).to(device)
     logger.info(f"Parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
+    # ── Calculate Class Weights ───────────────────────────────
+    # FER-2013 is highly imbalanced (e.g., 'Disgust' is very rare).
+    # We calculate inverse frequency weights: Total_Samples / (Num_Classes * Class_Count)
+    labels = [sample[1] for sample in train_ds.samples]
+    class_counts = np.bincount(labels)
+    total_samples = len(labels)
+    num_classes = len(config.emotion_classes)
+    
+    weights = total_samples / (num_classes * class_counts)
+    class_weights_tensor = torch.tensor(weights, dtype=torch.float32).to(device)
+    logger.info(f"Applied Class Weights: {weights.round(2)}")
+
     # ── Loss, optimizer, scheduler ────────────────────────────
-    criterion = nn.CrossEntropyLoss(label_smoothing=config.label_smoothing)
+    criterion = nn.CrossEntropyLoss(weight=class_weights_tensor, label_smoothing=config.label_smoothing)
     optimizer = AdamW(
         model.parameters(),
         lr=config.learning_rate,
@@ -294,6 +306,13 @@ def train(data_root: str = "data/fer2013") -> None:
                     config.emotion_model_path,
                 )
                 logger.info(f"  ✅ New best model saved (val_acc={best_val_acc:.4f})")
+                
+                # Register the model to MLflow Model Registry (commented out to avoid pt2 trace errors)
+                # mlflow.pytorch.log_model(
+                #     model,
+                #     "model",
+                #     registered_model_name="AVIS_Dual_Stream_Emotion"
+                # )
 
         mlflow.log_metric("best_val_accuracy", best_val_acc)
         logger.info(f"Training complete. Best val accuracy: {best_val_acc:.4f}")

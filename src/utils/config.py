@@ -83,7 +83,7 @@ class AVISConfig(BaseSettings):
     # ── LLM Configuration ─────────────────────────────────────
     groq_api_key: str = ""
     openrouter_api_key: str = ""
-    llm_model_name: str = "llama-3.1-8b-instant"
+    llm_model_name: str = "mixtral-8x7b-32768"
 
     def ensure_dirs(self):
         """Create required directories if they don't exist."""

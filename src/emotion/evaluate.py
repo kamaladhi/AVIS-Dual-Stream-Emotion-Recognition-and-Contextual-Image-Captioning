@@ -19,6 +19,7 @@ from sklearn.metrics import (
     confusion_matrix,
     f1_score,
 )
+import mlflow
 from torch.utils.data import DataLoader
 
 from src.emotion.train import FER2013Dataset
@@ -92,6 +93,14 @@ def evaluate_model(data_root: str = "data/fer2013", model_path: Path | None = No
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
     logger.info(f"Confusion matrix saved to {out_path}")
+
+    # ── MLflow Tracking ───────────────────────────────────────
+    mlflow.set_tracking_uri(config.mlflow_tracking_uri)
+    mlflow.set_experiment(config.mlflow_experiment_name)
+    with mlflow.start_run(run_name="Evaluation_Test_Set"):
+        mlflow.log_metric("test_accuracy", float(accuracy))
+        mlflow.log_metric("test_weighted_f1", float(weighted_f1))
+        mlflow.log_artifact(str(out_path), artifact_path="evaluation_plots")
 
     return {
         "accuracy": float(accuracy),
